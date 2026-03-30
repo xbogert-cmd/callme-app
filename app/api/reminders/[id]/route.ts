@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase';
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const { id } = await params;
   const body = await req.json();
   const { task_name, user_phone, scheduled_time, status } = body;
@@ -17,6 +21,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     .from('reminders')
     .update(updates)
     .eq('id', id)
+    .eq('user_id', user.id)
     .select()
     .single();
 
@@ -25,9 +30,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const { id } = await params;
 
-  const { error } = await supabase.from('reminders').delete().eq('id', id);
+  const { error } = await supabase
+    .from('reminders')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });

@@ -1,6 +1,11 @@
 -- CallMe Database Schema
 -- Run this in your Supabase SQL Editor
 
+-- ─── Auth migration — run this AFTER the initial schema ──────────────────────
+-- ALTER TABLE reminders ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES auth.users(id);
+-- CREATE INDEX IF NOT EXISTS reminders_user_id ON reminders (user_id);
+-- ─────────────────────────────────────────────────────────────────────────────
+
 -- Reminders table
 CREATE TABLE IF NOT EXISTS reminders (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,

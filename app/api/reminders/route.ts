@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase';
 import { CategorySettings } from '@/types';
 
 export async function GET() {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const { data, error } = await supabase
     .from('reminders')
     .select('*')
+    .eq('user_id', user.id)
     .order('scheduled_time', { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -13,6 +18,10 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const supabase = await createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
   const body = await req.json();
   const {
     task_name,
@@ -43,7 +52,7 @@ export async function POST(req: NextRequest) {
         ...category_settings,
         checkinNumber: i + 1,
         budgetDate,
-        parentId: undefined, // filled in after first insert
+        parentId: undefined,
       };
 
       const { data, error } = await supabase
@@ -56,6 +65,7 @@ export async function POST(req: NextRequest) {
           category,
           category_settings: settings,
           repeat,
+          user_id: user.id,
         })
         .select()
         .single();
@@ -70,7 +80,8 @@ export async function POST(req: NextRequest) {
       await supabase
         .from('reminders')
         .update({ category_settings: { ...r.category_settings, parentId } })
-        .eq('id', r.id);
+        .eq('id', r.id)
+        .eq('user_id', user.id);
     }
 
     return NextResponse.json(created, { status: 201 });
@@ -79,7 +90,7 @@ export async function POST(req: NextRequest) {
   // All other categories: single reminder
   const { data, error } = await supabase
     .from('reminders')
-    .insert({ task_name, user_phone: phone, scheduled_time, status: 'pending', category, category_settings, repeat })
+    .insert({ task_name, user_phone: phone, scheduled_time, status: 'pending', category, category_settings, repeat, user_id: user.id })
     .select()
     .single();
 

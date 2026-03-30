@@ -4,6 +4,14 @@ import { useState, useEffect } from 'react';
 import { Reminder, ReminderStatus, TaskCompletion, CATEGORY_CONFIG } from '@/types';
 import { format, isPast, differenceInMinutes, differenceInHours } from 'date-fns';
 
+const CATEGORY_STYLE: Record<string, { border: string; emojiBg: string }> = {
+  workout:    { border: '#F97316', emojiBg: 'rgba(249,115,22,0.13)' },
+  medication: { border: '#EC4899', emojiBg: 'rgba(236,72,153,0.13)' },
+  study:      { border: '#3B82F6', emojiBg: 'rgba(59,130,246,0.13)' },
+  budget:     { border: '#22C55E', emojiBg: 'rgba(34,197,94,0.13)'  },
+  general:    { border: '#94A3B8', emojiBg: 'rgba(148,163,184,0.12)' },
+};
+
 const STATUS_CONFIG: Record<ReminderStatus, { label: string; color: string; bg: string; border: string }> = {
   pending:     { label: 'Pending',     color: '#92400E', bg: '#FEF3C7', border: '#FDE68A' },
   called:      { label: 'Calling…',   color: '#1E40AF', bg: '#DBEAFE', border: '#BFDBFE' },
@@ -142,6 +150,7 @@ export default function ReminderList({ reminders, completions = [], onDelete, on
       {sorted.map((reminder) => {
         const cfg = STATUS_CONFIG[reminder.status];
         const catCfg = CATEGORY_CONFIG[reminder.category ?? 'general'];
+        const catStyle = CATEGORY_STYLE[reminder.category ?? 'general'] ?? CATEGORY_STYLE.general;
         const isCancelled = reminder.status === 'cancelled';
         const isCompleted = reminder.status === 'completed';
         const isOverdue = isPast(new Date(reminder.scheduled_time)) && reminder.status === 'pending';
@@ -160,15 +169,13 @@ export default function ReminderList({ reminders, completions = [], onDelete, on
             style={{
               boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
               opacity: isCancelled ? 0.55 : 1,
-              borderLeft: `3px solid ${cfg.border}`,
+              borderLeft: `4px solid ${catStyle.border}`,
             }}>
 
             {/* Category emoji icon */}
             {!isEditing && (
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
-                style={isCompleted
-                  ? { background: '#DCFCE7', border: '1px solid #BBF7D0' }
-                  : { background: 'var(--bg-2)', border: '1px solid var(--border)' }}>
+              <div className="w-11 h-11 rounded-full flex items-center justify-center text-xl shrink-0"
+                style={{ background: catStyle.emojiBg, border: `1.5px solid ${catStyle.border}33` }}>
                 {catCfg.emoji}
               </div>
             )}
@@ -208,7 +215,7 @@ export default function ReminderList({ reminders, completions = [], onDelete, on
             ) : (
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <p className={`text-sm font-semibold ${isCancelled ? 'line-through' : ''}`}
+                  <p className={`text-base font-bold leading-snug ${isCancelled ? 'line-through' : ''}`}
                     style={{ color: 'var(--text)' }}>
                     {reminder.task_name}
                   </p>
@@ -224,7 +231,7 @@ export default function ReminderList({ reminders, completions = [], onDelete, on
                   )}
                 </div>
 
-                <p className="text-xs mt-1" style={{ color: 'var(--text-2)' }}>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-3)' }}>
                   {reminder.status === 'snoozed'
                     ? `Calling back at ${format(new Date(reminder.scheduled_time), 'h:mm a')}`
                     : format(new Date(reminder.scheduled_time), 'MMM d, yyyy • h:mm a')}
@@ -247,7 +254,7 @@ export default function ReminderList({ reminders, completions = [], onDelete, on
                   <p className="text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>No notes logged</p>
                 )}
 
-                <p className="text-xs mt-0.5" style={{ color: 'var(--text-3)' }}>{reminder.user_phone}</p>
+                <p className="text-xs mt-0.5 font-mono" style={{ color: 'var(--text-3)' }}>{reminder.user_phone}</p>
               </div>
             )}
 

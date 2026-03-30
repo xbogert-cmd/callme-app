@@ -416,7 +416,7 @@ export default function ReminderForm({ onCreated }: Props) {
               <button key={opt} type="button" onClick={() => setRepeat(opt)}
                 className="tap-press flex-1 py-2 rounded-lg text-xs font-semibold transition-all"
                 style={repeat === opt ? pillActive : pillInactive}>
-                {opt === 'none' ? 'None' : opt === 'daily' ? '📅 Daily' : '📆 Weekly'}
+                {opt === 'none' ? 'None' : opt === 'daily' ? 'Daily' : 'Weekly'}
               </button>
             ))}
           </div>

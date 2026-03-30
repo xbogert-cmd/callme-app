@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { createBrowserSupabaseClient } from '@/lib/supabase';
 import ReminderForm from '@/components/ReminderForm';
 import ReminderList from '@/components/ReminderList';
 import MissedCalls from '@/components/MissedCalls';
@@ -31,6 +33,7 @@ function getGreeting(): string {
 }
 
 export default function Dashboard() {
+  const router = useRouter();
   const [reminders, setReminders]     = useState<Reminder[]>([]);
   const [callLogs, setCallLogs]       = useState<CallLog[]>([]);
   const [completions, setCompletions] = useState<TaskCompletion[]>([]);
@@ -41,6 +44,12 @@ export default function Dashboard() {
   const [isDark, setIsDark] = useState(false);
   const hasLoaded       = useRef(false);
   const prevCompletions = useRef(0);
+
+  const handleSignOut = async () => {
+    const supabase = createBrowserSupabaseClient();
+    await supabase.auth.signOut();
+    window.location.href = '/login';
+  };
 
   const fetchData = useCallback(async () => {
     const [rRes, lRes] = await Promise.all([fetch('/api/reminders'), fetch('/api/logs')]);
@@ -114,6 +123,13 @@ export default function Dashboard() {
     { label: '🔥 Streak', value: streak === 0 ? '—' : `${streak}d`, accent: '#EF4444', pulse: streak >= 3 },
   ];
 
+  const STAT_TINTS: Record<string, string> = {
+    '#F59E0B': 'rgba(245,158,11,0.07)',
+    '#10B981': 'rgba(16,185,129,0.07)',
+    '#3B82F6': 'rgba(59,130,246,0.07)',
+    '#EF4444': 'rgba(239,68,68,0.07)',
+  };
+
   const tabs: { key: Tab; label: string; count: number }[] = [
     { key: 'reminders',   label: 'Reminders',    count: active.length },
     { key: 'history',     label: 'Call History', count: callLogs.length },
@@ -155,6 +171,11 @@ export default function Dashboard() {
                 style={{ color: 'var(--text-2)', border: '1px solid var(--border)', background: 'var(--surface)' }}>
                 Refresh
               </button>
+              <button onClick={handleSignOut}
+                className="tap-press text-xs px-3 py-1.5 rounded-lg font-medium hover:opacity-80 transition-opacity"
+                style={{ color: 'var(--text-2)', border: '1px solid var(--border)', background: 'var(--surface)' }}>
+                Sign Out
+              </button>
             </div>
           </div>
         </header>
@@ -176,13 +197,15 @@ export default function Dashboard() {
           <div className="grid grid-cols-4 gap-3">
             {stats.map((s) => (
               <div key={s.label}
-                className={`rounded-xl bg-white py-4 px-3 ${s.pulse ? 'stat-pulse' : ''}`}
+                className={`rounded-xl py-5 px-4 ${s.pulse ? 'stat-pulse' : ''}`}
                 style={{
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)',
-                  borderLeft: `3px solid ${s.accent}`,
+                  background: STAT_TINTS[s.accent],
+                  border: `1px solid ${s.accent}33`,
+                  borderLeft: `4px solid ${s.accent}`,
+                  boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
                 }}>
-                <p className="text-xl font-bold tabular-nums" style={{ color: s.accent }}>{s.value}</p>
-                <p className="text-xs mt-0.5 font-medium" style={{ color: 'var(--text-3)' }}>{s.label}</p>
+                <p className="text-3xl font-black tabular-nums leading-none" style={{ color: s.accent }}>{s.value}</p>
+                <p className="text-xs mt-2 font-semibold uppercase tracking-wide" style={{ color: 'var(--text-3)', letterSpacing: '0.06em' }}>{s.label}</p>
               </div>
             ))}
           </div>
@@ -195,18 +218,18 @@ export default function Dashboard() {
 
           {/* Tabs + content */}
           <div>
-            {/* Pill tabs */}
-            <div className="flex gap-2 mb-5">
+            {/* Underline tabs */}
+            <div className="flex mb-5" style={{ borderBottom: '2px solid var(--border)' }}>
               {tabs.map((t) => (
                 <button key={t.key} onClick={() => setTab(t.key)}
-                  className="tap-press flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all"
+                  className="tap-press flex items-center gap-1.5 px-4 py-2.5 text-sm transition-colors"
                   style={tab === t.key
-                    ? { background: 'var(--accent)', color: '#fff', boxShadow: '0 2px 8px rgba(59,130,246,0.35)' }
-                    : { background: 'var(--surface)', color: 'var(--text-2)', border: '1px solid var(--border)' }}>
+                    ? { color: 'var(--accent)', fontWeight: 600, borderBottom: '2px solid var(--accent)', marginBottom: '-2px', background: 'none' }
+                    : { color: 'var(--text-2)', fontWeight: 500, borderBottom: '2px solid transparent', marginBottom: '-2px', background: 'none' }}>
                   {t.label}
                   <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full"
                     style={tab === t.key
-                      ? { background: 'rgba(255,255,255,0.25)', color: '#fff' }
+                      ? { background: 'var(--accent-bg)', color: 'var(--accent)' }
                       : { background: 'var(--bg-2)', color: 'var(--text-3)' }}>
                     {t.count}
                   </span>
