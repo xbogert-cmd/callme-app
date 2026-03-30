@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(python3:*)",
+      "Bash(/Users/alexanderbogert/callme-app/app/globals.css:*)",
+      "Bash(grep:*)"
+    ]
+  }
+}
