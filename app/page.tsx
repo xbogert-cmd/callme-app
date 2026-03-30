@@ -25,11 +25,12 @@ const QUOTES = [
   '"It always seems impossible until it\'s done." — Nelson Mandela',
 ];
 
-function getGreeting(): string {
+function getGreeting(name: string): string {
   const h = new Date().getHours();
-  if (h < 12) return 'Good morning, Xan 👋';
-  if (h < 17) return 'Good afternoon, Xan 👋';
-  return 'Good evening, Xan 👋';
+  const suffix = name ? `, ${name}` : '';
+  if (h < 12) return `Good morning${suffix} 👋`;
+  if (h < 17) return `Good afternoon${suffix} 👋`;
+  return `Good evening${suffix} 👋`;
 }
 
 export default function Dashboard() {
@@ -42,6 +43,10 @@ export default function Dashboard() {
   const [quoteIdx] = useState(() => Math.floor(Math.random() * QUOTES.length));
   const [showConfetti, setShowConfetti] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [displayName, setDisplayName]     = useState('');
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [nameInput, setNameInput]         = useState('');
+  const [savingName, setSavingName]       = useState(false);
   const hasLoaded       = useRef(false);
   const prevCompletions = useRef(0);
 
@@ -49,6 +54,18 @@ export default function Dashboard() {
     const supabase = createBrowserSupabaseClient();
     await supabase.auth.signOut();
     window.location.href = '/login';
+  };
+
+  const handleSaveName = async () => {
+    const name = nameInput.trim();
+    if (!name) return;
+    setSavingName(true);
+    localStorage.setItem('callme_display_name', name);
+    setDisplayName(name);
+    const supabase = createBrowserSupabaseClient();
+    await supabase.auth.updateUser({ data: { display_name: name } });
+    setShowOnboarding(false);
+    setSavingName(false);
   };
 
   const fetchData = useCallback(async () => {
@@ -70,6 +87,16 @@ export default function Dashboard() {
   useEffect(() => {
     const saved = localStorage.getItem('callme_theme');
     if (saved === 'dark') setIsDark(true);
+  }, []);
+
+  // Onboarding: show name prompt if display name not yet set
+  useEffect(() => {
+    const saved = localStorage.getItem('callme_display_name');
+    if (saved) {
+      setDisplayName(saved);
+    } else {
+      setShowOnboarding(true);
+    }
   }, []);
 
   const toggleDark = () => {
@@ -185,7 +212,7 @@ export default function Dashboard() {
           {/* Greeting */}
           <div>
             <h1 className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text)' }}>
-              {getGreeting()}
+              {getGreeting(displayName)}
             </h1>
             <p className="text-sm mt-1" style={{ color: 'var(--text-2)' }}>
               Your AI accountability coach is ready.
@@ -288,6 +315,67 @@ export default function Dashboard() {
 
         </main>
       </div>
+
+      {/* Onboarding modal */}
+      {showOnboarding && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+          padding: '20px',
+        }}>
+          <div style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: '20px',
+            padding: '32px',
+            width: '100%',
+            maxWidth: '380px',
+            boxShadow: '0 24px 64px rgba(0,0,0,0.25)',
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>👋</div>
+              <h2 style={{ fontSize: '1.3125rem', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+                What should we call you?
+              </h2>
+              <p style={{ fontSize: '0.9375rem', color: 'var(--text-2)', marginTop: '6px' }}>
+                We&apos;ll use this in your daily greeting.
+              </p>
+            </div>
+            <input
+              type="text"
+              value={nameInput}
+              onChange={(e) => setNameInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
+              placeholder="Your first name"
+              autoFocus
+              style={{
+                width: '100%', padding: '11px 14px', borderRadius: '10px',
+                border: '1px solid var(--border)', background: 'var(--bg)',
+                color: 'var(--text)', fontSize: '0.9375rem', outline: 'none',
+                boxSizing: 'border-box', marginBottom: '14px',
+                transition: 'border-color 0.15s',
+              }}
+              onFocus={(e) => (e.target.style.borderColor = 'var(--accent)')}
+              onBlur={(e) => (e.target.style.borderColor = 'var(--border)')}
+            />
+            <button
+              onClick={handleSaveName}
+              disabled={!nameInput.trim() || savingName}
+              className="btn-press"
+              style={{
+                width: '100%', padding: '12px', borderRadius: '10px',
+                background: nameInput.trim() ? 'var(--accent)' : 'var(--border)',
+                color: nameInput.trim() ? '#fff' : 'var(--text-3)',
+                fontSize: '0.9375rem', fontWeight: 600, border: 'none',
+                cursor: nameInput.trim() && !savingName ? 'pointer' : 'default',
+                transition: 'background 0.15s, color 0.15s',
+              }}>
+              {savingName ? 'Saving…' : "Let's go!"}
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
